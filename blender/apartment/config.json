@@ -67,7 +67,7 @@
     "profiles": {
       "final":   { "samples": 384, "min_samples": 96, "threshold": 0.01, "percentage": 100 },
       "hd":      { "samples": 128, "min_samples": 32, "threshold": 0.03, "percentage": 50, "texture_limit": "2048", "max_subdiv": 2 },
-      "preview": { "samples": 48,  "min_samples": 16, "threshold": 0.05, "percentage": 25, "texture_limit": "512", "max_subdiv": 1 }
+      "preview": { "samples": 48,  "min_samples": 16, "threshold": 0.05, "percentage": 25, "texture_limit": "512", "max_subdiv": 2 }
     },
     "look": "Medium High Contrast",
     "exposure": 0.0,

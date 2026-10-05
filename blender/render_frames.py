@@ -89,13 +89,19 @@ def main():
                     still(sc, c, f, os.path.join(out, f"{fmt}_F{f:03d}.png"), fmt, "preview", M)
     elif mode in ("stills", "verify"):
         sc = bpy.data.scenes["STILLS"]
-        for cam in [o for o in sc.objects if o.type == "CAMERA"]:
+        cams = [o for o in sc.objects if o.type == "CAMERA"]
+        for a in args[1:]:
+            if a.startswith("--cam="):
+                cams = [c for c in cams if c.name == a.split("=", 1)[1]]
+        profile = "preview" if "--preview" in args else (("final" if "--4k" in args else "hd") if mode == "stills" else "preview")
+        for cam in cams:
             if mode == "verify" and not cam.get("verify"):
                 continue
             if gpu:
                 sc.cycles.device = "GPU"
-            profile = ("final" if "--4k" in args else "hd") if mode == "stills" else "preview"
-            still(sc, cam, 1, os.path.join(out, f"{cam.name}.png"), "stills", profile, M)
+            target_out = os.path.join(HERE, "..", "render", "preview" if profile == "preview" else mode)
+            os.makedirs(target_out, exist_ok=True)
+            still(sc, cam, 1, os.path.join(target_out, f"{cam.name}.png"), "stills", profile, M)
     elif mode == "master":
         fmt = args[1]
         # 4K is opt-in only: the default master is 1080p so a weak machine never gets a 4K job.

@@ -177,7 +177,7 @@ def table_lamp(name, coll, loc):
     g = group(name, coll, loc)
     cylinder(f"{name}_base", coll, (0, 0, 0.18), 0.05, 0.36, mats.get("ceramic"), parent=g)
     cylinder(f"{name}_shade", coll, (0, 0, 0.44), 0.16, 0.22, mats.get("lamp_shade"), parent=g, bevel=0.0)
-    p = _point(f"{name}_light", coll, (0, 0, 0.42), 9, 0.06)
+    p = _point(f"{name}_light", coll, (0, 0, 0.42), 5, 0.06)
     p.parent = g
     return g
 
