@@ -1,0 +1,33 @@
+node_modules/
+dist/
+build/
+.cache/
+.env*
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
+/logs/
+!blender/logs/
+!blender/logs/*.log
+.claude-replay.*
+.tmp-*
+/.figma/design-context/
+
+# Platform-managed agentplat state
+/.plugins/
+/.opencode-skills/
+
+# Renders: only keep preview images, ignore master/animations
+render/*
+!render/preview/
+!render/preview/*.png
+
+__pycache__/
+*.pyc
+*.blend1
+
+# Ignore heavy downloaded assets and proprietary assets
+blender/assets/
+blender/apartment_final.blend
+*.part
