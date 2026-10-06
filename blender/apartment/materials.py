@@ -219,7 +219,7 @@ def lamp_shade():
     tr = nt.nodes.new("ShaderNodeBsdfTranslucent")
     tr.inputs["Color"].default_value = hex_to_linear("#F6D9AE")
     mix = nt.nodes.new("ShaderNodeMixShader")
-    mix.inputs["Fac"].default_value = 0.40
+    mix.inputs["Fac"].default_value = 0.4
     out = nt.nodes["Material Output"]
     nt.links.new(b.outputs["BSDF"], mix.inputs[1])
     nt.links.new(tr.outputs["BSDF"], mix.inputs[2])
