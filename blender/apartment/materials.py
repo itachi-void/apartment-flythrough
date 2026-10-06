@@ -127,23 +127,45 @@ def floor_oak():
 
 
 def travertine():
+    """Vein-cut Roman travertine: long wavy bands of warm cream/sand along one axis,
+    open pores (dark pits, rougher) and a honed sheen. Bands, not wood grain: low
+    distortion, very elongated, with a second noise breaking the stripes."""
     mat, nt, b = _new("M_travertine")
-    co = _coords(nt, (1.0, 1.0, 4.0))
-    noise = nt.nodes.new("ShaderNodeTexNoise")
-    noise.inputs["Scale"].default_value = 4.0
-    noise.inputs["Detail"].default_value = 10.0
-    vor = nt.nodes.new("ShaderNodeTexVoronoi")
-    vor.inputs["Scale"].default_value = 90.0
-    nt.links.new(co, noise.inputs["Vector"])
-    nt.links.new(co, vor.inputs["Vector"])
-    col = _ramp(nt, noise.outputs["Fac"], "#BCA98D", "#E1D5C0", 0.35, 0.7)
-    nt.links.new(col, b.inputs["Base Color"])
+    co = _coords(nt, (1.0, 6.0, 6.0))  # bands run along X
+    wave = nt.nodes.new("ShaderNodeTexWave")
+    wave.wave_type = "BANDS"
+    wave.bands_direction = "Z"
+    wave.inputs["Scale"].default_value = 0.9
+    wave.inputs["Distortion"].default_value = 2.5
+    wave.inputs["Detail"].default_value = 8.0
+    wave.inputs["Detail Roughness"].default_value = 0.7
+    nt.links.new(co, wave.inputs["Vector"])
+    band = _ramp(nt, wave.outputs["Fac"], "#C4AE8C", "#E6DAC4", 0.25, 0.75)
+    # open pores: small voronoi cells darkened and roughened
+    pores = nt.nodes.new("ShaderNodeTexVoronoi")
+    pores.inputs["Scale"].default_value = 140.0
+    nt.links.new(_coords(nt, (1.0, 3.0, 3.0)), pores.inputs["Vector"])
+    pit = nt.nodes.new("ShaderNodeMapRange")
+    pit.inputs["From Min"].default_value = 0.0
+    pit.inputs["From Max"].default_value = 0.08
+    nt.links.new(pores.outputs["Distance"], pit.inputs["Value"])  # 0 inside a pore, 1 elsewhere
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.inputs["A"].default_value = hex_to_linear("#8F7A5E")
+    mix.inputs["B"].default_value = hex_to_linear("#E9DFCC")
+    nt.links.new(pit.outputs["Result"], mix.inputs["Factor"])
+    mul = nt.nodes.new("ShaderNodeMix")
+    mul.data_type, mul.blend_type = "RGBA", "MULTIPLY"
+    mul.inputs["Factor"].default_value = 1.0
+    nt.links.new(band, mul.inputs["A"])
+    nt.links.new(mix.outputs["Result"], mul.inputs["B"])
+    nt.links.new(mul.outputs["Result"], b.inputs["Base Color"])
     rough = nt.nodes.new("ShaderNodeMapRange")
-    rough.inputs["To Min"].default_value = 0.45
-    rough.inputs["To Max"].default_value = 0.7
-    nt.links.new(noise.outputs["Fac"], rough.inputs["Value"])
+    rough.inputs["To Min"].default_value = 0.85  # pore
+    rough.inputs["To Max"].default_value = 0.38  # honed face
+    nt.links.new(pit.outputs["Result"], rough.inputs["Value"])
     nt.links.new(rough.outputs["Result"], b.inputs["Roughness"])
-    _bump(nt, b, vor.outputs["Distance"], 0.05)
+    _bump(nt, b, pit.outputs["Result"], 0.25)
     return mat
 
 
@@ -362,6 +384,8 @@ def apply_scanned(M):
     done = []
     for key, spec in S["textures"].items():
         mat = _LIB.get(key)
+        if spec.get("disabled"):
+            continue
         folder = os.path.join(root, key)
         diff = os.path.join(folder, f"{key}_diff.jpg")
         if mat is None or not os.path.exists(diff):

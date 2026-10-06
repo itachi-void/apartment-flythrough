@@ -23,7 +23,9 @@
   "travertine": {
    "id": "marble_01",
    "tile_m": 1.5,
-   "tint": "#E8D9C0"
+   "tint": "#E8D9C0",
+   "disabled": true,
+   "_why": "marble_01 tinted beige read as pale wood on the coffee table; the procedural vein-cut travertine is closer"
   },
   "dark_stone": {
    "id": "terrazzo_tiles",

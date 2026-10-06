@@ -15,7 +15,7 @@ import bmesh
 import bpy
 
 from . import materials as mats
-from .common import box, cylinder, empty, group, kelvin_to_linear, link, ray_visibility, ring, sphere, upholster
+from .common import box, cylinder, empty, group, kelvin_to_linear, link, pillow, ray_visibility, ring, sphere, upholster
 
 # --- shared furniture -------------------------------------------------------
 
@@ -367,18 +367,17 @@ def build_bedroom_module(M, offset, coll):
     upholster(t, puff=0.015, wrinkle=0.012, seed=5)
     # layered pillows: euro shams against the headboard, sleeping pillows, one lumbar
     for s in (-1, 1):
-        e = box(f"bed_euro{s}", coll, (bx + s * 0.46, oy + 4.66, 0.92), (0.66, 0.16, 0.62), mats.get("linen"), bevel=0.07)
+        e = pillow(f"bed_euro{s}", coll, (bx + s * 0.46, oy + 4.68, 0.93), (0.66, 0.2, 0.64), mats.get("linen"),
+                   wrinkle=0.012, seed=s + 1)
         e.rotation_euler = (math.radians(-9), 0.0, math.radians(s * 1.5))
-        upholster(e, puff=0.32, wrinkle=0.012, seed=s + 1)
-        p = box(f"bed_pillow{s}", coll, (bx + s * 0.45, oy + 4.45, 0.76), (0.74, 0.17, 0.46), mats.get("linen"), bevel=0.07)
+        p = pillow(f"bed_pillow{s}", coll, (bx + s * 0.45, oy + 4.47, 0.78), (0.76, 0.19, 0.5), mats.get("linen"),
+                   wrinkle=0.015, seed=s + 2)
         p.rotation_euler = (math.radians(-24), 0.0, math.radians(-s * 3.0))
-        upholster(p, puff=0.38, wrinkle=0.014, seed=s + 2)
         box(f"bed_side{s}", coll, (bx + s * 1.55, oy + 4.6, 0.25), (0.5, 0.4, 0.5), mats.get("walnut"), bevel=0.006)
         box(f"bed_side{s}_gap", coll, (bx + s * 1.55, oy + 4.39, 0.36), (0.46, 0.005, 0.006), mats.get("black_metal"), bevel=0.0)
         table_lamp(f"bed_lamp{s}", coll, (bx + s * 1.55, oy + 4.6, 0.5))
-    lum = box("bed_lumbar", coll, (bx, oy + 4.3, 0.74), (0.62, 0.13, 0.3), mats.get("fabric_dark"), bevel=0.05)
+    lum = pillow("bed_lumbar", coll, (bx, oy + 4.3, 0.75), (0.6, 0.15, 0.32), mats.get("fabric_dark"), wrinkle=0.008, seed=7)
     lum.rotation_euler = (math.radians(-16), 0.0, math.radians(2.5))
-    upholster(lum, puff=0.4, wrinkle=0.008, seed=7)
     box("bed_rug", coll, (bx, by - 0.4, 0.006), (3.0, 2.4, 0.012), mats.get("rug"), bevel=0.0)
     # Bedside light line at headboard height: match cut into the living LED line.
     box("bed_led_line", coll, (bx, oy + 4.81, 2.02), (3.2, 0.012, 0.012), mats.get("led_strip"), bevel=0.0)

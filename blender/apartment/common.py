@@ -195,6 +195,48 @@ def upholster(obj, puff=0.12, wrinkle=0.006, seed=0):
     return obj
 
 
+def pillow(name, coll, center, size, mat, wrinkle=0.01, seed=0, parent=None):
+    """A sewn pillow, not an inflated box: two panels stitched at the rim, so the
+    thickness falls to the seam everywhere, corners pinch into 'ears' and the
+    edges pull inward between them. size = (width, thickness, height) like box()."""
+    w, t, h = size
+    n = 16
+    bm = bmesh.new()
+    grid = {}
+    for side in (1, -1):
+        for i in range(n + 1):
+            for j in range(n + 1):
+                u, v = 2 * i / n - 1, 2 * j / n - 1
+                if side == -1 and (i in (0, n) or j in (0, n)):
+                    grid[(side, i, j)] = grid[(1, i, j)]  # seam shared by both panels
+                    continue
+                fill = max(0.0, (1 - u * u) * (1 - v * v)) ** 0.55
+                x = u * w / 2 * (1 - 0.07 * (1 - v * v))  # edges draw in between the ears
+                z = v * h / 2 * (1 - 0.07 * (1 - u * u))
+                grid[(side, i, j)] = bm.verts.new((x, side * t / 2 * fill, z))
+    for side in (1, -1):
+        for i in range(n):
+            for j in range(n):
+                q = [grid[(side, i, j)], grid[(side, i + 1, j)], grid[(side, i + 1, j + 1)], grid[(side, i, j + 1)]]
+                bm.faces.new(q if side == -1 else q[::-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    obj = _mesh_object(name, coll, bm, mat, center)
+    if parent is not None:
+        set_parent(obj, parent)
+    sub = obj.modifiers.new("subdiv", "SUBSURF")
+    sub.levels, sub.render_levels = 1, 2
+    if wrinkle:
+        tex = bpy.data.textures.new(f"{name}_wrinkle", "CLOUDS")
+        tex.noise_scale, tex.noise_depth = 0.12, 2
+        tex.noise_basis = ("BLENDER_ORIGINAL", "ORIGINAL_PERLIN", "IMPROVED_PERLIN")[seed % 3]
+        disp = obj.modifiers.new("wrinkle", "DISPLACE")
+        disp.texture, disp.strength, disp.mid_level = tex, wrinkle, 0.5
+        disp.texture_coords = "GLOBAL"
+    for p in obj.data.polygons:
+        p.use_smooth = True
+    return obj
+
+
 def empty(name, coll, location=(0, 0, 0), rot_z_deg=0.0, size=0.25, kind="PLAIN_AXES"):
     obj = bpy.data.objects.new(name, None)
     obj.empty_display_type = kind
