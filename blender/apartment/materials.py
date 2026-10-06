@@ -131,19 +131,19 @@ def travertine():
     open pores (dark pits, rougher) and a honed sheen. Bands, not wood grain: low
     distortion, very elongated, with a second noise breaking the stripes."""
     mat, nt, b = _new("M_travertine")
-    co = _coords(nt, (1.0, 6.0, 6.0))  # bands run along X
+    co = _coords(nt, (0.6, 1.6, 1.6))  # bands run along X, ~10-20 cm apart
     wave = nt.nodes.new("ShaderNodeTexWave")
     wave.wave_type = "BANDS"
     wave.bands_direction = "Z"
-    wave.inputs["Scale"].default_value = 0.9
-    wave.inputs["Distortion"].default_value = 2.5
+    wave.inputs["Scale"].default_value = 0.6
+    wave.inputs["Distortion"].default_value = 7.0  # irregular, never evenly spaced
     wave.inputs["Detail"].default_value = 8.0
     wave.inputs["Detail Roughness"].default_value = 0.7
     nt.links.new(co, wave.inputs["Vector"])
-    band = _ramp(nt, wave.outputs["Fac"], "#C4AE8C", "#E6DAC4", 0.25, 0.75)
+    band = _ramp(nt, wave.outputs["Fac"], "#D3C2A4", "#E4D8C3", 0.3, 0.7)  # low contrast: stone, not plywood
     # open pores: small voronoi cells darkened and roughened
     pores = nt.nodes.new("ShaderNodeTexVoronoi")
-    pores.inputs["Scale"].default_value = 140.0
+    pores.inputs["Scale"].default_value = 60.0
     nt.links.new(_coords(nt, (1.0, 3.0, 3.0)), pores.inputs["Vector"])
     pit = nt.nodes.new("ShaderNodeMapRange")
     pit.inputs["From Min"].default_value = 0.0
