@@ -36,6 +36,7 @@ def _source(pid, lib):
     lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
     hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
     coll.instance_offset = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
+    coll["dims"] = list(hi - lo)
     return coll
 
 
@@ -62,16 +63,27 @@ def build(apt_coll):
             skipped.append(d["model"])
             continue
         base = anchor.matrix_world.translation
-        z = _top(anchor) if d["on"] == "top" else 0.0
+        dims = src.get("dims", [1.0, 1.0, 1.0])
+        # "fit": metres for the longest horizontal side -> uniform scale (real furniture
+        # replacing a proxy keeps the proxy's footprint, never stretched)
+        scale = d["fit"] / max(dims[0], dims[1]) if d.get("fit") else d.get("scale", 1.0)
+        if d["on"] == "top":
+            z = _top(anchor)
+        elif d["on"] == "ceiling":  # hangs from the anchor (pendant group sits at the slab)
+            z = base.z - dims[2] * scale - d.get("drop", 0.0)
+        else:
+            z = 0.0
         inst = bpy.data.objects.new(f"DRESS_{i:02d}_{d['model']}", None)
         inst.instance_type = "COLLECTION"
         inst.instance_collection = src
         inst.location = (base.x + d["dx"], base.y + d["dy"], z)
-        inst.rotation_euler.z = math.radians(d["rot"])
-        inst.scale = (d.get("scale", 1.0),) * 3
+        yaw = anchor.matrix_world.to_euler().z if d.get("rot_from_anchor") else 0.0
+        inst.rotation_euler.z = yaw + math.radians(d["rot"])
+        inst.scale = (scale,) * 3
         link(inst, out)
         if d.get("replace"):
             for o in [anchor] + list(anchor.children_recursive):
-                o.hide_render = o.hide_viewport = True
+                if o.type != "LIGHT":  # a replaced lamp keeps its light
+                    o.hide_render = o.hide_viewport = True
         placed.append(d["model"])
     return {"placed": placed, "skipped": skipped}

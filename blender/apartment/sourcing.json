@@ -75,6 +75,151 @@
  },
  "dressing": [
   {
+   "model": "sofa_03",
+   "anchor": "living_sofa_east",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true,
+   "fit": 2.6
+  },
+  {
+   "model": "potted_plant_01",
+   "anchor": "living_plant",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true,
+   "scale": 1.0
+  },
+  {
+   "model": "dining_chair_02",
+   "anchor": "dining_chair_s0",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "dining_chair_02",
+   "anchor": "dining_chair_s1",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "dining_chair_02",
+   "anchor": "dining_chair_s2",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "dining_chair_02",
+   "anchor": "dining_chair_n0",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "dining_chair_02",
+   "anchor": "dining_chair_n1",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "dining_chair_02",
+   "anchor": "dining_chair_n2",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 180,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "bar_chair_round_01",
+   "anchor": "kitchen_stool0",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "bar_chair_round_01",
+   "anchor": "kitchen_stool1",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "bar_chair_round_01",
+   "anchor": "kitchen_stool2",
+   "on": "floor",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true
+  },
+  {
+   "model": "modern_ceiling_lamp_01",
+   "anchor": "kitchen_pendant0",
+   "on": "ceiling",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true,
+   "drop": 0.25
+  },
+  {
+   "model": "modern_ceiling_lamp_01",
+   "anchor": "kitchen_pendant1",
+   "on": "ceiling",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true,
+   "drop": 0.25
+  },
+  {
+   "model": "modern_ceiling_lamp_01",
+   "anchor": "dining_pendant",
+   "on": "ceiling",
+   "dx": 0,
+   "dy": 0,
+   "rot": 0,
+   "replace": true,
+   "rot_from_anchor": true,
+   "drop": 0.35
+  },
+  {
    "model": "book_encyclopedia_set_01",
    "anchor": "living_coffee_top",
    "on": "top",
@@ -105,16 +250,6 @@
    "dx": 0.0,
    "dy": -0.5,
    "rot": 90
-  },
-  {
-   "model": "potted_plant_02",
-   "anchor": "living_plant",
-   "on": "floor",
-   "dx": 0,
-   "dy": 0,
-   "rot": 0,
-   "replace": true,
-   "scale": 1.4
   },
   {
    "model": "brass_vase_02",
@@ -212,5 +347,6 @@
   }
  ],
  "hdri_rotation_deg": 0,
- "_weight_note": "decorative_book_set_01 (~200 MB textures) and brass_candleholders swapped out: they push a 4 GB machine out of RAM."
+ "_weight_note": "decorative_book_set_01 (~200 MB textures) and brass_candleholders swapped out: they push a 4 GB machine out of RAM.",
+ "_furniture_note": "Real Poly Haven furniture replaces the coded proxies (replace=true). If a piece faces the wall, change its 'rot' by 180; 'fit' = target length in metres."
 }

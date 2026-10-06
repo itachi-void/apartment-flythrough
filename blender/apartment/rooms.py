@@ -26,17 +26,43 @@ def _floor(M, name, coll, offset, size, mat_name):
         mats.get(mat_name), bevel=0.0)
 
 
-def _ceiling_lights(M, name, coll, offset, size, inset=0.5):
+def _ceiling_lights(M, name, coll, offset, size, inset=0.5, cove=True):
     """Same W/m2 and Kelvin in every room -> one exposure for the whole film.
-    Real apartments are lit by recessed downlights, not one glowing ceiling: most of
-    the budget goes into a grid of spots (pools of light on floor and walls = contrast),
-    a small share stays as a soft ceiling bounce so corners never go black."""
+    Luxury interiors read real because of *layered* light, never one glowing ceiling:
+      * tray ceiling: a dropped perimeter soffit with a hidden LED cove grazing the
+        recessed field (the warm gradient every reference photo has),
+      * wall-wash spots in the soffit, close to the walls -> scallops of light,
+      * a downlight grid in the field for pools on the floor,
+      * a small hidden fill so corners never go black."""
     L = M["lighting"]
     sx, sy = size
     H = M["shell"]["wall_height"]
+    ox, oy = offset[0], offset[1]
     budget = L["ceiling_w_per_m2"] * sx * sy
-    fill_share = L.get("ceiling_fill_share", 0.3)
-    lw, lh = max(0.4, sx - 2 * inset), max(0.4, sy - 2 * inset)
+    cove = cove and min(sx, sy) >= 2.8
+    C = L.get("cove", {})
+    band, drop = C.get("band", 0.55), C.get("drop", 0.16)
+    fill_share = L.get("ceiling_fill_share", 0.3) * (0.5 if cove else 1.0)
+    wash_share = C.get("wash_share", 0.4) if cove else 0.0
+    dl_kelvin = kelvin_to_linear(L.get("downlight_kelvin", L["practical_kelvin"]))
+    trim = mats.get("downlight_trim")
+    lens = mats.get("lamp_warm")
+
+    def fixture(tag, x, y, z, watts, beam, tilt=(0.0, 0.0)):
+        spot = bpy.data.lights.new(f"{name}_{tag}", "SPOT")
+        spot.energy = watts
+        spot.color = dl_kelvin
+        spot.spot_size = math.radians(beam)
+        spot.spot_blend = 0.55
+        spot.shadow_soft_size = 0.03
+        so = link(bpy.data.objects.new(f"{name}_{tag}", spot), coll)
+        so.location = (x, y, z - 0.03)  # points straight down (-Z) by default
+        so.rotation_euler = (tilt[0], tilt[1], 0.0)
+        cylinder(f"{name}_{tag}_trim", coll, (x, y, z - 0.004), 0.045, 0.008, trim, segments=24, bevel=0.0)
+        cylinder(f"{name}_{tag}_lens", coll, (x, y, z - 0.009), 0.028, 0.002, lens, segments=24, bevel=0.0)
+
+    field_inset = band + 0.35 if cove else inset
+    lw, lh = max(0.4, sx - 2 * field_inset), max(0.4, sy - 2 * field_inset)
     light = bpy.data.lights.new(f"{name}_ceiling", "AREA")
     light.shape = "RECTANGLE"
     light.size, light.size_y = lw, lh
@@ -44,29 +70,76 @@ def _ceiling_lights(M, name, coll, offset, size, inset=0.5):
     light.color = kelvin_to_linear(L["kelvin"])
     light.spread = math.radians(120)
     obj = link(bpy.data.objects.new(f"{name}_ceiling", light), coll)
-    obj.location = (offset[0] + sx / 2, offset[1] + sy / 2, H - 0.02)
+    obj.location = (ox + sx / 2, oy + sy / 2, H - 0.02)
     ray_visibility(obj, camera=False, glossy=False)  # no flat rectangle in reflections
 
     pitch = L.get("downlight_pitch", 1.5)
     nx, ny = max(1, round(lw / pitch)), max(1, round(lh / pitch))
-    each = budget * (1 - fill_share) / (nx * ny)
-    trim = mats.get("downlight_trim")
+    each = budget * (1 - fill_share - wash_share) / (nx * ny)
     for i in range(nx):
         for j in range(ny):
-            x = offset[0] + inset + lw / nx * (i + 0.5)
-            y = offset[1] + inset + lh / ny * (j + 0.5)
-            spot = bpy.data.lights.new(f"{name}_dl{i}{j}", "SPOT")
-            spot.energy = each
-            spot.color = kelvin_to_linear(L.get("downlight_kelvin", L["practical_kelvin"]))
-            spot.spot_size = math.radians(L.get("downlight_beam_deg", 70))
-            spot.spot_blend = 0.65
-            spot.shadow_soft_size = 0.035
-            so = link(bpy.data.objects.new(f"{name}_dl{i}{j}", spot), coll)
-            so.location = (x, y, H - 0.03)  # points straight down (-Z) by default
-            # 75 mm bronze-black trim ring + glowing lens, flush with the slab
-            cylinder(f"{name}_dl{i}{j}_trim", coll, (x, y, H - 0.004), 0.045, 0.008, trim, segments=24, bevel=0.0)
-            cylinder(f"{name}_dl{i}{j}_lens", coll, (x, y, H - 0.009), 0.028, 0.002, mats.get("lamp_warm"),
-                     segments=24, bevel=0.0)
+            fixture(f"dl{i}{j}", ox + field_inset + lw / nx * (i + 0.5), oy + field_inset + lh / ny * (j + 0.5),
+                    H, each, L.get("downlight_beam_deg", 70))
+    if not cove:
+        return obj
+
+    # --- tray: outer soffit (full drop) + a cove ledge on its inner edge with an
+    # upstand lip; the LED tape lies on the ledge, invisible from below ------------
+    plaster = mats.get("plaster")
+    ledge, slab, lip_h = 0.13, 0.03, 0.07
+    outer = band - ledge
+    z_l = H - drop  # underside of the whole soffit
+    ix0, ix1, iy0, iy1 = ox + band, ox + sx - band, oy + band, oy + sy - band
+
+    def ring4(tag, inset_a, width, z0, h):
+        """Four boxes forming a frame whose outer edge is `inset_a` from the walls."""
+        x0, x1, y0, y1 = ox + inset_a, ox + sx - inset_a, oy + inset_a, oy + sy - inset_a
+        for side, c, d in (("s", ((x0 + x1) / 2, y0 + width / 2), (x1 - x0, width)),
+                           ("n", ((x0 + x1) / 2, y1 - width / 2), (x1 - x0, width)),
+                           ("w", (x0 + width / 2, (y0 + y1) / 2), (width, y1 - y0 - 2 * width)),
+                           ("e", (x1 - width / 2, (y0 + y1) / 2), (width, y1 - y0 - 2 * width))):
+            box(f"{name}_{tag}_{side}", coll, (c[0], c[1], z0 + h / 2), (d[0], d[1], h), plaster, bevel=0.003)
+
+    ring4("soffit", 0.0, outer, z_l, drop)
+    ring4("ledge", outer, ledge, z_l, slab)
+    ring4("lip", band - 0.02, 0.02, z_l, lip_h)
+    w_per_m = C.get("w_per_m", 9.0)
+    led_col = kelvin_to_linear(C.get("kelvin", 2700))
+    m = outer + ledge * 0.45  # tape centre line, from the wall
+    zl = z_l + slab + 0.004
+    for tag, c, length, horiz in (("s", (ox + sx / 2, oy + m), sx - 2 * m, True),
+                                  ("n", (ox + sx / 2, oy + sy - m), sx - 2 * m, True),
+                                  ("w", (ox + m, oy + sy / 2), sy - 2 * m, False),
+                                  ("e", (ox + sx - m, oy + sy / 2), sy - 2 * m, False)):
+        cl = bpy.data.lights.new(f"{name}_cove_{tag}", "AREA")
+        cl.shape = "RECTANGLE"
+        cl.size, cl.size_y = (length, 0.03) if horiz else (0.03, length)
+        cl.energy = w_per_m * length
+        cl.color = led_col
+        cl.spread = math.radians(160)
+        co = link(bpy.data.objects.new(f"{name}_cove_{tag}", cl), coll)
+        co.location = (c[0], c[1], zl + 0.006)
+        co.rotation_euler = (math.pi, 0.0, 0.0)  # face up into the tray
+        ray_visibility(co, camera=False, glossy=False)
+        box(f"{name}_cove_tape_{tag}", coll, (c[0], c[1], zl),
+            (length, 0.012, 0.004) if horiz else (0.012, length, 0.004), mats.get("led_strip"), bevel=0.0)
+
+    # --- wall-wash spots in the soffit: scallops on every wall ---------------------
+    wp = C.get("wash_pitch", 1.2)
+    off = 0.32  # from wall face
+    zs = H - drop
+    tilt = math.radians(8)
+    spots = []
+    for along, length, mk in ((True, sx, lambda t: ((ox + t, oy + off), (-tilt, 0))),
+                              (True, sx, lambda t: ((ox + t, oy + sy - off), (tilt, 0))),
+                              (False, sy, lambda t: ((ox + off, oy + t), (0, tilt))),
+                              (False, sy, lambda t: ((ox + sx - off, oy + t), (0, -tilt)))):
+        n = max(1, int((length - 2 * band) / wp))
+        for k in range(n):
+            spots.append(mk(band + (length - 2 * band) / n * (k + 0.5)))
+    each_w = budget * wash_share / len(spots)
+    for k, ((x, y), (tx, ty)) in enumerate(spots):
+        fixture(f"ww{k}", x, y, zs, each_w, C.get("wash_beam_deg", 45), (tx, ty))
     return obj
 
 
@@ -206,7 +279,7 @@ def plant(name, coll, loc, h=1.4):
 def build_entry_module(M, offset, coll):
     ox, oy = offset
     _floor(M, "entry", coll, offset, M["rooms"]["entry"]["size"], M["rooms"]["entry"]["floor"])
-    _ceiling_lights(M, "entry", coll, offset, M["rooms"]["entry"]["size"])
+    _ceiling_lights(M, "entry", coll, offset, M["rooms"]["entry"]["size"], cove=False)
     # Walnut slat wall with a bronze-framed LED reveal: the opening close-up.
     for i in range(14):
         x = ox + 0.12 + i * 0.1
@@ -386,10 +459,10 @@ def build_bedroom_module(M, offset, coll):
     # across it. The window must stay a light source -- the cool dusk fill is what keeps
     # the room from collapsing into one orange tone.
     gx = ox + 8.5 - 0.12
-    drape("bed_curtain_s", coll, gx, oy + 0.7, oy + 1.25, 0.02, 2.86, mats.get("linen"), folds=6)
-    drape("bed_curtain_n", coll, gx, oy + 3.75, oy + 4.3, 0.02, 2.86, mats.get("linen"), folds=6)
-    drape("bed_sheer", coll, gx + 0.05, oy + 1.2, oy + 3.8, 0.02, 2.86, mats.get("sheer"), folds=14, depth=0.035)
-    box("bed_curtain_track", coll, (gx + 0.02, oy + 2.5, 2.88), (0.04, 3.7, 0.02), mats.get("black_metal"), bevel=0.0)
+    drape("bed_curtain_s", coll, gx, oy + 0.7, oy + 1.25, 0.02, 2.72, mats.get("linen"), folds=6)
+    drape("bed_curtain_n", coll, gx, oy + 3.75, oy + 4.3, 0.02, 2.72, mats.get("linen"), folds=6)
+    drape("bed_sheer", coll, gx + 0.05, oy + 1.2, oy + 3.8, 0.02, 2.72, mats.get("sheer"), folds=14, depth=0.035)
+    box("bed_curtain_track", coll, (gx + 0.02, oy + 2.5, 2.73), (0.04, 3.7, 0.02), mats.get("black_metal"), bevel=0.0)
 
 
 def build_terrace_module(M, offset, coll):

@@ -5,15 +5,15 @@
   "shell": { "wall_height": 2.9, "wall_thickness": 0.2, "slab_thickness": 0.2 },
 
   "rooms": {
-    "entry":    { "origin": [0.0, 0.0],  "size": [3.0, 3.0], "floor": "floor_oak" },
+    "entry":    { "origin": [0.0, 0.0],  "size": [3.0, 3.0], "floor": "floor_porcelain" },
     "closet":   { "origin": [-1.5, 0.0], "size": [1.5, 3.0], "floor": "floor_oak" },
-    "living":   { "origin": [3.0, 0.0],  "size": [8.0, 6.0], "floor": "floor_oak" },
-    "kitchen":  { "origin": [3.0, 6.0],  "size": [4.0, 4.0], "floor": "travertine" },
-    "dining":   { "origin": [7.0, 6.0],  "size": [4.0, 4.0], "floor": "floor_oak" },
-    "corridor": { "origin": [1.5, 3.0],  "size": [1.5, 7.0], "floor": "floor_oak" },
+    "living":   { "origin": [3.0, 0.0],  "size": [8.0, 6.0], "floor": "floor_porcelain" },
+    "kitchen":  { "origin": [3.0, 6.0],  "size": [4.0, 4.0], "floor": "floor_porcelain" },
+    "dining":   { "origin": [7.0, 6.0],  "size": [4.0, 4.0], "floor": "floor_porcelain" },
+    "corridor": { "origin": [1.5, 3.0],  "size": [1.5, 7.0], "floor": "floor_porcelain" },
     "bathroom": { "origin": [-1.5, 3.0], "size": [3.0, 4.0], "floor": "tile" },
     "walkin":   { "origin": [-1.5, 7.0], "size": [3.0, 3.0], "floor": "floor_oak" },
-    "bedroom":  { "origin": [-1.5, 10.0],"size": [8.5, 5.0], "floor": "floor_oak" },
+    "bedroom":  { "origin": [-1.5, 10.0],"size": [8.5, 5.0], "floor": "floor_porcelain" },
     "terrace":  { "origin": [11.0, 0.0], "size": [2.5, 10.0],"floor": "terrace_stone", "outdoor": true }
   },
 
@@ -47,6 +47,7 @@
     "_doc": "One exposure for the whole apartment: every room gets the same ceiling irradiance (W per m2) and the same colour temperature, so brightness does not jump across cuts.",
     "ceiling_w_per_m2": 5.0,
     "ceiling_fill_share": 0.3,
+    "cove": { "_doc": "Tray ceiling: soffit band + hidden LED cove + wall-wash spots in the soffit (rooms >= 2.8 m).", "band": 0.55, "drop": 0.16, "w_per_m": 9.0, "kelvin": 2700, "wash_share": 0.4, "wash_pitch": 1.2, "wash_beam_deg": 45 },
     "kelvin": 4000,
     "downlight_kelvin": 3000,
     "downlight_pitch": 1.5,

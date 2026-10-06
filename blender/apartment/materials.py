@@ -126,6 +126,69 @@ def floor_oak():
     return mat
 
 
+def floor_porcelain():
+    """Polished large-format porcelain (120x60, 1.5 mm grout): the mirror-like floor
+    that reflects every downlight and furniture leg -- the strongest single cue that
+    separates a photographed interior from a CG one. Soft marble clouds keep the
+    tiles from reading as flat colour; roughness varies very slightly per tile."""
+    mat, nt, b = _new("M_floor_porcelain")
+    co = _coords(nt)
+    brick = nt.nodes.new("ShaderNodeTexBrick")
+    brick.offset = 0.5
+    brick.inputs["Scale"].default_value = 1.0
+    brick.inputs["Brick Width"].default_value = 1.2
+    brick.inputs["Row Height"].default_value = 0.6
+    brick.inputs["Mortar Size"].default_value = 0.0015
+    brick.inputs["Mortar Smooth"].default_value = 0.3
+    brick.inputs["Bias"].default_value = 0.0
+    brick.inputs["Color1"].default_value = hex_to_linear("#DCD3C6")
+    brick.inputs["Color2"].default_value = hex_to_linear("#D4CABC")
+    brick.inputs["Mortar"].default_value = hex_to_linear("#9C9184")
+    nt.links.new(co, brick.inputs["Vector"])
+    # faint marble clouds + thin veins
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 1.6
+    noise.inputs["Detail"].default_value = 8.0
+    noise.inputs["Roughness"].default_value = 0.6
+    nt.links.new(co, noise.inputs["Vector"])
+    wave = nt.nodes.new("ShaderNodeTexWave")
+    wave.wave_profile = "SIN"
+    wave.inputs["Scale"].default_value = 0.9
+    wave.inputs["Distortion"].default_value = 14.0
+    wave.inputs["Detail"].default_value = 6.0
+    nt.links.new(co, wave.inputs["Vector"])
+    vein = _ramp(nt, wave.outputs["Fac"], "#FFFFFF", "#B8AD9E", 0.93, 1.0)
+    cloud = nt.nodes.new("ShaderNodeMix")
+    cloud.data_type = "RGBA"
+    cloud.blend_type = "OVERLAY"
+    cloud.inputs["Factor"].default_value = 0.18
+    nt.links.new(brick.outputs["Color"], cloud.inputs["A"])
+    nt.links.new(noise.outputs["Color"], cloud.inputs["B"])
+    veined = nt.nodes.new("ShaderNodeMix")
+    veined.data_type = "RGBA"
+    veined.blend_type = "MULTIPLY"
+    veined.inputs["Factor"].default_value = 0.6
+    nt.links.new(cloud.outputs["Result"], veined.inputs["A"])
+    nt.links.new(vein, veined.inputs["B"])
+    nt.links.new(veined.outputs["Result"], b.inputs["Base Color"])
+    # gloss: polished face 0.05-0.09, grout matte
+    rmap = nt.nodes.new("ShaderNodeMapRange")
+    rmap.inputs["From Min"].default_value = 0.0
+    rmap.inputs["From Max"].default_value = 1.0
+    rmap.inputs["To Min"].default_value = 0.05
+    rmap.inputs["To Max"].default_value = 0.09
+    nt.links.new(noise.outputs["Fac"], rmap.inputs["Value"])
+    rough = nt.nodes.new("ShaderNodeMix")
+    rough.data_type = "FLOAT"
+    nt.links.new(brick.outputs["Fac"], rough.inputs["Factor"])
+    nt.links.new(rmap.outputs["Result"], rough.inputs["A"])
+    rough.inputs["B"].default_value = 0.8
+    nt.links.new(rough.outputs["Result"], b.inputs["Roughness"])
+    _set(b, coat=0.35)
+    _bump(nt, b, brick.outputs["Fac"], -0.15)
+    return mat
+
+
 def travertine():
     """Vein-cut Roman travertine: long wavy bands of warm cream/sand along one axis,
     open pores (dark pits, rougher) and a honed sheen. Bands, not wood grain: low
@@ -140,7 +203,26 @@ def travertine():
     wave.inputs["Detail"].default_value = 8.0
     wave.inputs["Detail Roughness"].default_value = 0.7
     nt.links.new(co, wave.inputs["Vector"])
-    band = _ramp(nt, wave.outputs["Fac"], "#D3C2A4", "#E4D8C3", 0.3, 0.7)  # low contrast: stone, not plywood
+    # Z-bands are constant on a horizontal face, so tops (island, coffee table) came out
+    # as flat beige. Tops get the same vein running across Y; blend by face orientation.
+    wave_top = nt.nodes.new("ShaderNodeTexWave")
+    wave_top.wave_type = "BANDS"
+    wave_top.bands_direction = "Y"
+    for k in ("Scale", "Distortion", "Detail", "Detail Roughness"):
+        wave_top.inputs[k].default_value = wave.inputs[k].default_value
+    nt.links.new(co, wave_top.inputs["Vector"])
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], sep.inputs["Vector"])
+    up = nt.nodes.new("ShaderNodeMath")
+    up.operation = "ABSOLUTE"
+    nt.links.new(sep.outputs["Z"], up.inputs[0])
+    vein = nt.nodes.new("ShaderNodeMix")
+    vein.data_type = "FLOAT"
+    nt.links.new(up.outputs["Value"], vein.inputs["Factor"])
+    nt.links.new(wave.outputs["Fac"], vein.inputs["A"])
+    nt.links.new(wave_top.outputs["Fac"], vein.inputs["B"])
+    band = _ramp(nt, vein.outputs["Result"], "#D3C2A4", "#E4D8C3", 0.3, 0.7)  # low contrast: stone, not plywood
     # open pores: small voronoi cells darkened and roughened
     pores = nt.nodes.new("ShaderNodeTexVoronoi")
     pores.inputs["Scale"].default_value = 60.0
@@ -335,6 +417,7 @@ def build_library(M):
         "walnut": walnut(),
         "walnut_dark": walnut("M_walnut_dark", "#5A3A26", "#2A1A10"),
         "floor_oak": floor_oak(),
+        "floor_porcelain": floor_porcelain(),
         "travertine": travertine(),
         "boucle": fabric("M_boucle", "#E7E1D6", sheen=0.8, rough=0.82, bump=0.35, scale=420.0),
         "linen": fabric("M_linen", "#E2DACD", sheen=0.5, rough=0.9, bump=0.12, scale=900.0),
